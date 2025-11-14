@@ -1,0 +1,197 @@
+# Download and split into paired-end FASTQ files
+fasterq-dump SRR34853843 --split-files --threads 4
+
+spots read      : 32,153,839
+reads read      : 64,307,678
+reads written   : 64,307,678
+
+fastqc SRR34853843_1.fastq SRR34853843_2.fastq
+
+Adapter and Quality Trimming
+fastp -i SRR34853843_1.fastq -I SRR34853843_2.fastq -o clean_1.fastq -O clean_2.fastq -h fastp.html
+
+Read1 before filtering:
+total reads: 32153839
+total bases: 4855229689
+Q20 bases: 4713749104(97.086%)
+Q30 bases: 4513340018(92.9583%)
+
+Read2 before filtering:
+total reads: 32153839
+total bases: 4855229689
+Q20 bases: 4722089675(97.2578%)
+Q30 bases: 4515434746(93.0015%)
+
+Read1 after filtering:
+total reads: 31778792
+total bases: 4377528432
+Q20 bases: 4279092379(97.7513%)
+Q30 bases: 4111226915(93.9166%)
+
+Read2 after filtering:
+total reads: 31778792
+total bases: 4377528432
+Q20 bases: 4286054676(97.9104%)
+Q30 bases: 4114085876(93.9819%)
+
+Filtering result:
+reads passed filter: 63557584
+reads failed due to low quality: 749576
+reads failed due to too many N: 518
+reads failed due to too short: 0
+reads with adapter trimmed: 29891120
+bases trimmed due to adapters: 843975282
+
+Duplication rate: 22.7557%
+
+Insert size peak (evaluated by paired-end reads): 137
+
+JSON report: fastp.json
+HTML report: fastp.html
+
+fastp -i SRR34853843_1.fastq -I SRR34853843_2.fastq -o clean_1.fastq -O clean_2.fastq -h fastp.html 
+fastp v0.23.4, time used: 255 seconds
+
+Download and index the reference
+
+wget ftp://ftp.ensembl.org/pub/release-111/fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz
+gunzip Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz
+bwa index Homo_sapiens.GRCh38.dna.primary_assembly.fa
+
+bwt_gen] Finished constructing BWT in 688 iterations.
+[bwa_index] 3294.18 seconds elapse.
+[bwa_index] Update BWT... 19.53 sec
+[bwa_index] Pack forward-only FASTA... 15.75 sec
+[bwa_index] Construct SA from BWT and Occ... 1441.25 sec
+[main] Version: 0.7.19-r1273
+[main] CMD: bwa index Homo_sapiens.GRCh38.dna.primary_assembly.fa
+[main] Real time: 4811.945 sec; CPU: 4793.408 sec
+
+Align reads:
+bwa mem -t 4 Homo_sapiens.GRCh38.dna.primary_assembly.fa clean_1.fastq clean_2.fastq > aligned.sam
+
+# Add read-groups to sorted.bam and create index
+picard AddOrReplaceReadGroups \
+  I=sorted.bam \
+  O=sorted.rg.bam \
+  RGID=sample1 \
+  RGLB=lib1 \
+  RGPL=ILLUMINA \
+  RGPU=unit1 \
+  RGSM=sample1 \
+  CREATE_INDEX=true \
+  VALIDATION_STRINGENCY=LENIENT
+
+# Mark duplicates (Picard) and create index
+picard MarkDuplicates \
+  I=sorted.rg.bam \
+  O=dedup.bam \
+  M=metrics.txt \
+  CREATE_INDEX=true \
+  VALIDATION_STRINGENCY=LENIENT
+
+# Quick checks
+samtools view -H sorted.rg.bam | grep '^@RG'
+samtools flagstat dedup.bam
+
+(WES) abhishek@sai-ram:/media/abhishek/data_ext4/WES$ head -n 60 metrics.txt
+## htsjdk.samtools.metrics.StringHeader
+# MarkDuplicates INPUT=[sorted.rg.bam] OUTPUT=dedup.bam METRICS_FILE=metrics.txt VALIDATION_STRINGENCY=LENIENT CREATE_INDEX=true    MAX_SEQUENCES_FOR_DISK_READ_ENDS_MAP=50000 MAX_FILE_HANDLES_FOR_READ_ENDS_MAP=8000 SORTING_COLLECTION_SIZE_RATIO=0.25 TAG_DUPLICATE_SET_MEMBERS=false REMOVE_SEQUENCING_DUPLICATES=false TAGGING_POLICY=DontTag CLEAR_DT=true DUPLEX_UMI=false FLOW_MODE=false FLOW_DUP_STRATEGY=FLOW_QUALITY_SUM_STRATEGY FLOW_USE_END_IN_UNPAIRED_READS=false FLOW_USE_UNPAIRED_CLIPPED_END=false FLOW_UNPAIRED_END_UNCERTAINTY=0 FLOW_UNPAIRED_START_UNCERTAINTY=0 FLOW_SKIP_FIRST_N_FLOWS=0 FLOW_Q_IS_KNOWN_END=false FLOW_EFFECTIVE_QUALITY_THRESHOLD=15 ADD_PG_TAG_TO_READS=true REMOVE_DUPLICATES=false ASSUME_SORTED=false DUPLICATE_SCORING_STRATEGY=SUM_OF_BASE_QUALITIES PROGRAM_RECORD_ID=MarkDuplicates PROGRAM_GROUP_NAME=MarkDuplicates READ_NAME_REGEX=<optimized capture of last three ':' separated fields as numeric values> OPTICAL_DUPLICATE_PIXEL_DISTANCE=100 MAX_OPTICAL_DUPLICATE_SET_SIZE=300000 VERBOSITY=INFO QUIET=false COMPRESSION_LEVEL=5 MAX_RECORDS_IN_RAM=500000 CREATE_MD5_FILE=false USE_JDK_DEFLATER=false USE_JDK_INFLATER=false
+## htsjdk.samtools.metrics.StringHeader
+# Started on: Fri Nov 14 14:21:01 IST 2025
+
+## METRICS CLASS	picard.sam.DuplicationMetrics
+LIBRARY	UNPAIRED_READS_EXAMINED	READ_PAIRS_EXAMINED	SECONDARY_OR_SUPPLEMENTARY_RDS	UNMAPPED_READS	UNPAIRED_READ_DUPLICATES	READ_PAIR_DUPLICATES	READ_PAIR_OPTICAL_DUPLICATES	PERCENT_DUPLICATION	ESTIMATED_LIBRARY_SIZE
+lib1	12594	31247154	287484	1050682	7699	11951207	0	0.38252	29585167
+
+## HISTOGRAM	java.lang.Double
+BIN	CoverageMult	all_sets	non_optical_sets
+1.0	1	12526161	12526161
+2.0	1.347783	3985317	3985317
+3.0	1.468736	1543493	1543493
+4.0	1.510802	662805	662805
+5.0	1.525431	298598	298598
+6.0	1.530519	140160	140160
+7.0	1.532289	68306	68306
+8.0	1.532904	33244	33244
+9.0	1.533118	17165	17165
+10.0	1.533192	9116	9116
+11.0	1.533218	4940	4940
+12.0	1.533227	2756	2756
+13.0	1.533231	1552	1552
+14.0	1.533232	893	893
+15.0	1.533232	524	524
+16.0	1.533232	320	320
+17.0	1.533232	200	200
+18.0	1.533232	128	128
+19.0	1.533232	75	75
+20.0	1.533232	52	52
+21.0	1.533232	39	39
+22.0	1.533232	24	24
+23.0	1.533232	23	23
+24.0	1.533232	11	11
+25.0	1.533232	12	12
+26.0	1.533232	1	1
+27.0	1.533232	4	4
+28.0	1.533232	2	2
+29.0	1.533232	1	1
+30.0	1.533232	4	4
+31.0	1.533232	1	1
+32.0	1.533232	0	0
+33.0	1.533232	2	2
+34.0	1.533232	2	2
+35.0	1.533232	1	1
+36.0	1.533232	1	1
+37.0	1.533232	2	2
+38.0	1.533232	1	1
+39.0	1.533232	0	0
+40.0	1.533232	0	0
+41.0	1.533232	0	0
+42.0	1.533232	2	2
+43.0	1.533232	0	0
+44.0	1.533232	0	0
+45.0	1.533232	0	0
+46.0	1.533232	1	1
+47.0	1.533232	0	0
+48.0	1.533232	2	2
+49.0	1.533232	0	0
+
+
+samtools faidx Homo_sapiens.GRCh38.dna.primary_assembly.fa
+
+Quick verification (confirm files & sizes)
+ls -lh sample.g.vcf.gz sample.g.vcf.gz.tbi raw.vcf.gz raw.vcf 2>/dev/null || true
+# show first 80 header lines
+bcftools view -h sample.g.vcf.gz | sed -n '1,80p'
+
+
+
+head -30 annotated.vcf
+
+Basic Statistics and Visualization
+Count total variants:
+
+bash
+grep -v "^#" annotated.vcf | wc -l
+Separate SNPs and indels:
+
+bash
+grep -v "^#" annotated.vcf | awk '$4!=$5' | wc -l   # indels
+grep -v "^#" annotated.vcf | awk 'length($4)==1 && length($5)==1' | wc -l # SNPs
+View a few annotated variants:
+
+bash
+grep "ANN=" annotated.vcf | head
+
+(WES) abhishek@sai-ram:/media/abhishek/data_ext4/WES$ grep "ANN=" annotated.vcf | awk -F'|' '{print $2, $3, $4}' | sort | uniq -c | sort -nr | head
+   2182 intergenic_region MODIFIER 
+   1660 intergenic_region MODIFIER CHR_START-AL671532.1
+    731 intron_variant MODIFIER RBFOX1
+    433 intron_variant MODIFIER PTPRN2
+    400 intron_variant MODIFIER CSMD1
+    380 intron_variant MODIFIER CDH4
+    377 intron_variant MODIFIER FRMD4A
+    365 intron_variant MODIFIER DAB1
+    365 intron_variant MODIFIER ADARB2
+    343 intron_variant MODIFIER PRKN
+
