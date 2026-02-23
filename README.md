@@ -181,4 +181,57 @@ This sample fills a critical gap in TNBC genomic databases, which are dominated 
 ---
 
 ## 5. Repository Contents
+.
+├── fastqc/
+│ ├── SRR34853843_1_fastqc.html # FastQC report — Read 1
+│ └── SRR34853843_2_fastqc.html # FastQC report — Read 2
+│
+├── metrics/
+│ └── metrics.txt # Picard MarkDuplicates output
+│
+├── annotation/
+│ ├── snpEff_summary.html # SnpEff global summary report
+│ └── snpEff_genes.txt # Per-gene variant effect breakdown
+│
+└── results/
+├── high_moderate_variants.tsv # All HIGH + MODERATE impact variants
+├── filtered_main_variants.tsv # Curated filtered variant list
+└── main_findings.tsv # Summary table of key findings
 
+text
+
+---
+
+## 6. Tools & Dependencies
+
+| Tool | Purpose |
+|---|---|
+| FastQC | Raw read quality assessment |
+| Samtools | BAM sorting, indexing, flagstat |
+| Picard MarkDuplicates | PCR duplicate flagging |
+| Variant Caller (e.g., GATK HaplotypeCaller) | SNP/Indel calling |
+| SnpEff | Functional variant annotation (GRCh38) |
+
+---
+
+## 7. Future Directions
+
+- [ ] Compare variant allele frequencies against **gnomAD South Asian** population to distinguish somatic vs. germline candidates
+- [ ] Perform **APOBEC mutational signature deconvolution** (SigProfiler or MutationalPatterns)
+- [ ] Cross-reference HIGH-impact variants against **ClinVar**, **COSMIC**, and **OncoKB**
+- [ ] Validate `DERL3–SMARCB1` fusion using RNA-seq or orthogonal sequencing
+- [ ] Assess **HRD (Homologous Recombination Deficiency) score** based on LOH + TAI + LST metrics
+- [ ] Submit novel population-specific variants to a public database (e.g., **SeqRxiv** / dbSNP)
+
+---
+
+## 8. Citation
+
+If using this analysis or the pipeline, please cite:
+> [Your Name / Sequensolutions], *WES Variant Analysis of a South Asian TNBC Sample (SRR34853843)*, GitHub, 2026.
+
+---
+
+## 9. License
+
+This project is licensed under the **MIT License**. See `LICENSE` for details.
