@@ -228,7 +228,7 @@ text
 ## 8. Citation
 
 If using this analysis or the pipeline, please cite:
-> [Your Name / Sequensolutions], *WES Variant Analysis of a South Asian TNBC Sample (SRR34853843)*, GitHub, 2026.
+> [Abhishek S R / Sequensolutions], *WES Variant Analysis of a South Asian TNBC Sample (SRR34853843)*, GitHub, 2026.
 
 ---
 
